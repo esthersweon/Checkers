@@ -1,3 +1,5 @@
+require_relative 'pieces'
+
 class Board
 	attr_reader :board
 
@@ -42,22 +44,22 @@ class Board
 	# 	@board[row][col] = piece
 	# end
 
-	def move(s_row, s_col, d_row, d_col)
-		if (s_row - d_row).abs == 1 && (s_col - d_col).abs == 1
-			perform_slide(s_row, s_col, d_row, d_col)
-		elsif (s_row - d_row).abs == 2 && (s_col - d_col).abs == 2
-			perform_jump(s_row, s_col, d_row, d_col)
+	def move(start, dest)
+		if (start[0] - dest[0]).abs == 1 && (start[1] - dest[1]).abs == 1
+			perform_slide(start, dest)
+		elsif (start[0] - dest[0]).abs == 2 && (start[1] - dest[1]).abs == 2
+			perform_jump(start, dest)
 		else
 			puts
 			puts "That is not a valid move."
 		end
 	end
 
-	def perform_slide(s_row, s_col, d_row, d_col)
-		if self[s_row, s_col].slide_diffs.include?([d_row, d_col])
-			@board[s_row][s_col].position = [d_row, d_col]
-			@board[d_row][d_col] = @board[s_row][s_col] 
-			@board[s_row][s_col] = nil
+	def perform_slide(start, dest)
+		if self[start[0], start[1]].slide_diffs.include?([dest[0], dest[1]])
+			@board[start[0]][start[1]].position = [dest[0], dest[1]]
+			@board[dest[0]][dest[1]] = @board[start[0]][start[1]] 
+			@board[start[0]][start[1]] = nil
 		else
 			puts
 			puts "That is not a valid move."
@@ -68,12 +70,12 @@ class Board
 		(@board[d_row][d_col]).maybe_promote
 	end
 
-	def perform_jump(s_row, s_col, d_row, d_col)
-		if self[s_row, s_col].jump_diffs.include?([d_row, d_col])
-			@board[s_row][s_col].position = [d_row, d_col]
-			@board[d_row][d_col] = @board[s_row][s_col] 
-			@board[s_row][s_col] = nil
-			@board[(s_row + d_row)/2][(s_col + d_col)/2] = nil
+	def perform_jump(start, dest)
+		if self[start[0], start[1]].jump_diffs.include?([dest[0], dest[1]])
+			@board[start[0]][start[1]].position = [dest[0], dest[1]]
+			@board[dest[0]][dest[1]] = @board[start[0]][start[1]] 
+			@board[start[0]][start[1]] = nil
+			@board[(start[0] + dest[0])/2][(start[1] + dest[1])/2] = nil
 		else
 			puts
 			puts "That is not a valid move."
@@ -88,15 +90,37 @@ class Board
 		move_seq[0..-2].each_index do |i|
 			if (move_seq[i][0] - move_seq[i+1][0]).abs == 1 && 
 				(move_seq[i][1] - move_seq[i+1][1]).abs == 1
-				perform_slide(move_seq[i][0], move_seq[i][1], move_seq[i+1][0], move_seq[i+1][1])
+				perform_slide(move_seq[i], move_seq[i+1])
 			elsif (move_seq[i][0] - move_seq[i+1][0]).abs == 2 && 
 				(move_seq[i][1] - move_seq[i+1][1]).abs == 2
-				perform_jump(move_seq[i][0], move_seq[i][1], move_seq[i+1][0], move_seq[i+1][1])
+				perform_jump(move_seq[i], move_seq[i+1])
 			end
 		end
 	end
 
-	def valid_move_seq? #argument
+	def dup
+		duped_board = Board.new(false)
+
+		pieces.each do |piece|
+      		piece.class.new(piece.color, @board, piece.pos)
+    	end
+	end
+
+
+	def valid_move_seq?(move_seq)
+		duped_board = @board.dup
+
+		move_seq[0..-2].each_index do |i|
+			if (move_seq[i][0] - move_seq[i+1][0]).abs == 1 && 
+				(move_seq[i][1] - move_seq[i+1][1]).abs == 1
+				perform_slide(move_seq[i], move_seq[i+1])
+			elsif (move_seq[i][0] - move_seq[i+1][0]).abs == 2 && 
+				(move_seq[i][1] - move_seq[i+1][1]).abs == 2
+				perform_jump(move_seq[i], move_seq[i+1])
+			end
+		end
+
+
 		# begin
  	   # perform move!
 		# rescue
@@ -215,7 +239,10 @@ class Game
 		puts "Input destination column:"
 		d_col = gets.chomp.to_i
 
-		board.move(s_row, s_col, d_row, d_col)
+		start = [s_row, s_col]
+		destination = [d_row, d_col]
+
+		board.move(start, dest)
 
 		board.display
 	end
